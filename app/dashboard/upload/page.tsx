@@ -1,0 +1,566 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Upload, FileImage, X, CheckCircle, User, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { PageHeader } from '@/components/dashboard/PageHeader';
+
+type Step = 'patient-details' | 'upload-images';
+
+export default function UploadPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const existingPatientId = searchParams.get('patientId');
+  const [currentStep, setCurrentStep] = useState<Step>('patient-details');
+  const [patientData, setPatientData] = useState({
+    firstName: '',
+    lastName: '',
+    age: '',
+    gender: '',
+    contactNumber: '',
+    email: '',
+    address: '',
+    medicalHistory: '',
+    notes: '',
+  });
+  const [patientErrors, setPatientErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    age?: string;
+    gender?: string;
+    contactNumber?: string;
+    email?: string;
+    general?: string;
+  }>({});
+  const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+  const [patientId, setPatientId] = useState<string>('');
+  const [createdPatientId, setCreatedPatientId] = useState<string>('');
+
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+  const [existingPatient, setExistingPatient] = useState<any>(null);
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
+
+  useEffect(() => {
+    // If patientId is in URL, load patient data and skip to upload step
+    if (existingPatientId) {
+      loadExistingPatient(existingPatientId);
+    }
+  }, [existingPatientId]);
+
+  const loadExistingPatient = async (patientId: string) => {
+    setIsLoadingPatient(true);
+    try {
+      const response = await fetch(`/api/patients/${patientId}`);
+      const data = await response.json();
+
+      if (response.ok && data.patient) {
+        setExistingPatient(data.patient);
+        setPatientId(data.patient._id);
+        setCreatedPatientId(data.patient.patientId);
+        setCurrentStep('upload-images');
+      }
+      setIsLoadingPatient(false);
+    } catch (error) {
+      console.error('Error loading patient:', error);
+      setIsLoadingPatient(false);
+    }
+  };
+
+  const handlePatientChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setPatientData(prev => ({ ...prev, [name]: value }));
+    setPatientErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+
+  const handlePatientSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPatientErrors({});
+
+    // Validation
+    const newErrors: typeof patientErrors = {};
+    if (!patientData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    if (!patientData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (!patientData.age) {
+      newErrors.age = 'Age is required';
+    } else if (isNaN(Number(patientData.age)) || Number(patientData.age) < 0) {
+      newErrors.age = 'Age must be a valid number';
+    }
+    if (!patientData.gender) {
+      newErrors.gender = 'Gender is required';
+    }
+    if (!patientData.contactNumber.trim()) {
+      newErrors.contactNumber = 'Contact number is required';
+    }
+    if (patientData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setPatientErrors(newErrors);
+      return;
+    }
+
+    setIsCreatingPatient(true);
+
+    try {
+      // Get current user
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
+      const user = JSON.parse(userData);
+
+      const response = await fetch('/api/patients/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...patientData,
+          age: Number(patientData.age),
+          uploadedBy: user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPatientErrors({ general: data.error || 'Failed to register patient' });
+        setIsCreatingPatient(false);
+        return;
+      }
+
+      // Success - store patient ID and move to upload step
+      setPatientId(data.patient.id);
+      setCreatedPatientId(data.patient.patientId);
+      setIsCreatingPatient(false);
+      setCurrentStep('upload-images');
+    } catch (error) {
+      console.error('Patient creation error:', error);
+      setPatientErrors({ general: 'Something went wrong. Please try again.' });
+      setIsCreatingPatient(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const imageFiles = droppedFiles.filter(file => 
+      file.type.startsWith('image/') || 
+      file.name.endsWith('.dcm') || 
+      file.name.endsWith('.nii') ||
+      file.name.endsWith('.nii.gz')
+    );
+    
+    setFiles(prev => [...prev, ...imageFiles]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...selectedFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (files.length === 0 || !patientId) return;
+    
+    setUploading(true);
+    // TODO: Implement actual file upload and processing
+    // For now, simulate upload
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setUploading(false);
+    setUploaded(true);
+    
+    setTimeout(() => {
+      setUploaded(false);
+      setFiles([]);
+      // Reset form and go back to patient details
+      setCurrentStep('patient-details');
+      setPatientData({
+        firstName: '',
+        lastName: '',
+        age: '',
+        gender: '',
+        contactNumber: '',
+        email: '',
+        address: '',
+        medicalHistory: '',
+        notes: '',
+      });
+      setPatientId('');
+      setCreatedPatientId('');
+      router.push('/dashboard');
+    }, 3000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Upload MRI Images"
+        description="Register a new patient and upload their MRI images for analysis"
+      />
+
+      {/* Step Indicator */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className={`flex items-center gap-2 ${currentStep === 'patient-details' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+            currentStep === 'patient-details' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            1
+          </div>
+          <span className="font-medium">Patient Details</span>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
+        <div className={`flex items-center gap-2 ${currentStep === 'upload-images' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+            currentStep === 'upload-images' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            2
+          </div>
+          <span className="font-medium">Upload Images</span>
+        </div>
+      </div>
+
+      {currentStep === 'patient-details' && (
+        <Card title="Patient Information">
+          <form onSubmit={handlePatientSubmit} className="space-y-4">
+            {patientErrors.general && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {patientErrors.general}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                type="text"
+                name="firstName"
+                label="First Name"
+                placeholder="Enter patient's first name"
+                value={patientData.firstName}
+                onChange={handlePatientChange}
+                error={patientErrors.firstName}
+                required
+              />
+              <Input
+                type="text"
+                name="lastName"
+                label="Last Name"
+                placeholder="Enter patient's last name"
+                value={patientData.lastName}
+                onChange={handlePatientChange}
+                error={patientErrors.lastName}
+                required
+              />
+              <Input
+                type="number"
+                name="age"
+                label="Age"
+                placeholder="Enter patient's age"
+                value={patientData.age}
+                onChange={handlePatientChange}
+                error={patientErrors.age}
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="gender"
+                  value={patientData.gender}
+                  onChange={handlePatientChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    patientErrors.gender ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {patientErrors.gender && (
+                  <p className="mt-1 text-sm text-red-600">{patientErrors.gender}</p>
+                )}
+              </div>
+              <Input
+                type="tel"
+                name="contactNumber"
+                label="Contact Number"
+                placeholder="Enter contact number"
+                value={patientData.contactNumber}
+                onChange={handlePatientChange}
+                error={patientErrors.contactNumber}
+                required
+              />
+              <Input
+                type="email"
+                name="email"
+                label="Email Address (Optional)"
+                placeholder="Enter email address"
+                value={patientData.email}
+                onChange={handlePatientChange}
+                error={patientErrors.email}
+              />
+            </div>
+
+            <Input
+              type="text"
+              name="address"
+              label="Address (Optional)"
+              placeholder="Enter patient's address"
+              value={patientData.address}
+              onChange={handlePatientChange}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Medical History (Optional)
+              </label>
+              <textarea
+                name="medicalHistory"
+                value={patientData.medicalHistory}
+                onChange={handlePatientChange}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter relevant medical history"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes (Optional)
+              </label>
+              <textarea
+                name="notes"
+                value={patientData.notes}
+                onChange={handlePatientChange}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Any additional notes"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" disabled={isCreatingPatient}>
+                {isCreatingPatient ? (
+                  'Creating Patient...'
+                ) : (
+                  <>
+                    Next: Upload Images
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {currentStep === 'upload-images' && (
+        <>
+          {isLoadingPatient ? (
+            <Card>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading patient information...</p>
+              </div>
+            </Card>
+          ) : (
+            <>
+              {createdPatientId && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-blue-900">
+                        {existingPatient 
+                          ? `Uploading images for: ${existingPatient.firstName} ${existingPatient.lastName}`
+                          : 'Patient Registered Successfully'}
+                      </p>
+                      <p className="text-sm text-blue-700">Patient ID: {createdPatientId}</p>
+                      {existingPatient && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Age: {existingPatient.age} | Gender: {existingPatient.gender}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          <Card>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Upload MRI Images</h3>
+                  <p className="text-sm text-gray-600">Upload images for Patient ID: {createdPatientId}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentStep('patient-details')}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+              </div>
+
+              {/* Upload Area */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                  isDragging
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Drag and drop files here
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  or click to browse files
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Supported formats: DICOM (.dcm), NIfTI (.nii, .nii.gz), PNG, JPEG
+                </p>
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  multiple
+                  accept=".dcm,.nii,.nii.gz,.png,.jpg,.jpeg"
+                  onChange={handleFileSelect}
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                    Select Files
+                  </span>
+                </label>
+              </div>
+
+              {/* File List */}
+              {files.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Selected Files ({files.length})
+                  </h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {files.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileImage className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Button */}
+              {files.length > 0 && (
+                <div className="flex justify-end gap-4">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setFiles([])}
+                    disabled={uploading}
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleUpload}
+                    disabled={uploading || uploaded}
+                  >
+                    {uploading ? (
+                      <>Processing...</>
+                    ) : uploaded ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Uploaded Successfully
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 mr-2" />
+                        Upload & Process
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* Instructions */}
+      <Card title="Upload Instructions">
+        <ul className="space-y-2 text-sm text-gray-600">
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 mt-1">•</span>
+            <span>Step 1: Enter patient details including name, age, gender, and contact information</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 mt-1">•</span>
+            <span>Step 2: Upload MRI images in DICOM, NIfTI, PNG, or JPEG format</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 mt-1">•</span>
+            <span>Multiple files can be uploaded at once</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 mt-1">•</span>
+            <span>Files will be automatically validated and preprocessed</span>
+          </li>
+        </ul>
+      </Card>
+    </div>
+  );
+}
