@@ -1,9 +1,18 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://dmn7146:Daniyal@mri.pd9sglm.mongodb.net/brain_analysis?retryWrites=true&w=majority&appName=MRI';
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+function getMongoDBUri(): string {
+  if (typeof window !== 'undefined') {
+    // Client-side: return empty string (shouldn't be used)
+    return '';
+  }
+  
+  const uri = process.env.MONGODB_URI || 'mongodb+srv://dmn7146:Daniyal@mri.pd9sglm.mongodb.net/brain_analysis?retryWrites=true&w=majority&appName=MRI';
+  
+  if (!uri) {
+    throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  }
+  
+  return uri;
 }
 
 interface MongooseCache {
@@ -31,6 +40,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
+    const MONGODB_URI = getMongoDBUri();
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
       console.log('MongoDB Connected Successfully');
       return mongoose;

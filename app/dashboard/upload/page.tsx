@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Upload, FileImage, X, CheckCircle, User, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Upload, FileImage, X, CheckCircle, User, ChevronRight, ChevronLeft, Download, Eye } from 'lucide-react';
+import { addNotification } from '@/lib/notifications';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -45,6 +46,13 @@ function UploadPageContent() {
   const [uploaded, setUploaded] = useState(false);
   const [existingPatient, setExistingPatient] = useState<any>(null);
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
+  const [preprocessingResults, setPreprocessingResults] = useState<any[]>([]);
+  const [uploadError, setUploadError] = useState<string>('');
+  const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number; currentFile: string }>({
+    current: 0,
+    total: 0,
+    currentFile: ''
+  });
 
   useEffect(() => {
     // If patientId is in URL, load patient data and skip to upload step
@@ -193,32 +201,84 @@ function UploadPageContent() {
     if (files.length === 0 || !patientId) return;
     
     setUploading(true);
-    // TODO: Implement actual file upload and processing
-    // For now, simulate upload
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploading(false);
-    setUploaded(true);
+    setUploadError('');
+    setPreprocessingResults([]);
     
-    setTimeout(() => {
-      setUploaded(false);
-      setFiles([]);
-      // Reset form and go back to patient details
-      setCurrentStep('patient-details');
-      setPatientData({
-        firstName: '',
-        lastName: '',
-        age: '',
-        gender: '',
-        contactNumber: '',
-        email: '',
-        address: '',
-        medicalHistory: '',
-        notes: '',
+    try {
+      const results = [];
+      const totalFiles = files.length;
+      
+      // Set initial progress
+      setProcessingProgress({
+        current: 0,
+        total: totalFiles,
+        currentFile: ''
       });
-      setPatientId('');
-      setCreatedPatientId('');
-      router.push('/dashboard');
-    }, 3000);
+      
+      // Process each file through the preprocessing pipeline
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Update progress - current file being processed
+        setProcessingProgress({
+          current: i + 1,
+          total: totalFiles,
+          currentFile: file.name
+        });
+        
+        // Create form data for this file
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('denoise_method', 'gaussian'); // Can be made configurable
+        
+        // Call preprocessing API
+        const response = await fetch('/api/preprocess', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to process ${file.name}`);
+        }
+        
+        const result = await response.json();
+        results.push({
+          filename: file.name,
+          ...result,
+        });
+        
+        // Update results in real-time as each file completes
+        setPreprocessingResults([...results]);
+      }
+      
+      setPreprocessingResults(results);
+      setUploading(false);
+      setUploaded(true);
+      
+      // Create notification for each processed image
+      results.forEach((result) => {
+        const patientName = existingPatient 
+          ? `${existingPatient.firstName} ${existingPatient.lastName}`
+          : createdPatientId 
+            ? `Patient ${createdPatientId}`
+            : 'Patient';
+        
+        addNotification({
+          type: 'success',
+          title: 'Preprocessing Completed',
+          message: `MRI image "${result.filename}" has been successfully preprocessed through all 6 steps.`,
+          patientName: patientName,
+          patientId: patientId,
+        });
+      });
+      
+      // Keep results visible - no automatic redirect
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'Failed to upload and process images');
+      setUploading(false);
+    }
   };
 
   return (
@@ -505,7 +565,7 @@ function UploadPageContent() {
               )}
 
               {/* Upload Button */}
-              {files.length > 0 && (
+              {files.length > 0 && !uploaded && (
                 <div className="flex justify-end gap-4">
                   <Button
                     variant="ghost"
@@ -517,14 +577,12 @@ function UploadPageContent() {
                   <Button
                     variant="primary"
                     onClick={handleUpload}
-                    disabled={uploading || uploaded}
+                    disabled={uploading}
                   >
                     {uploading ? (
-                      <>Processing...</>
-                    ) : uploaded ? (
                       <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Uploaded Successfully
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
                       </>
                     ) : (
                       <>
@@ -533,6 +591,209 @@ function UploadPageContent() {
                       </>
                     )}
                   </Button>
+                </div>
+              )}
+
+              {/* Action Buttons After Upload */}
+              {uploaded && preprocessingResults.length > 0 && (
+                <div className="flex justify-end gap-4 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFiles([]);
+                      setPreprocessingResults([]);
+                      setUploaded(false);
+                      setUploadError('');
+                      setProcessingProgress({ current: 0, total: 0, currentFile: '' });
+                    }}
+                  >
+                    Process More Images
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      // Reset everything and go back to patient details
+                      setFiles([]);
+                      setPreprocessingResults([]);
+                      setUploaded(false);
+                      setUploadError('');
+                      setProcessingProgress({ current: 0, total: 0, currentFile: '' });
+                      setCurrentStep('patient-details');
+                      setPatientData({
+                        firstName: '',
+                        lastName: '',
+                        age: '',
+                        gender: '',
+                        contactNumber: '',
+                        email: '',
+                        address: '',
+                        medicalHistory: '',
+                        notes: '',
+                      });
+                      setPatientId('');
+                      setCreatedPatientId('');
+                    }}
+                  >
+                    Start New Patient
+                  </Button>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {uploadError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                  <strong>Error:</strong> {uploadError}
+                </div>
+              )}
+
+              {/* Processing Progress */}
+              {uploading && (
+                <div className="mt-6">
+                  <Card className="bg-blue-50 border-blue-200">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-blue-900">Processing Images...</h3>
+                          <p className="text-sm text-blue-700">
+                            {processingProgress.currentFile && (
+                              <>Processing: <strong>{processingProgress.currentFile}</strong></>
+                            )}
+                            {!processingProgress.currentFile && (
+                              <>Preparing to process your MRI images...</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      {processingProgress.total > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm text-blue-700">
+                            <span>
+                              File {processingProgress.current} of {processingProgress.total}
+                            </span>
+                            <span>
+                              {Math.round((processingProgress.current / processingProgress.total) * 100)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2.5">
+                            <div
+                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${(processingProgress.current / processingProgress.total) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Preprocessing Results */}
+              {preprocessingResults.length > 0 && (
+                <div className="space-y-4 mt-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Preprocessing Results ({preprocessingResults.length} {preprocessingResults.length === 1 ? 'image' : 'images'})
+                    </h3>
+                    {uploaded && (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">All images processed successfully!</span>
+                      </div>
+                    )}
+                  </div>
+                  {preprocessingResults.map((result, index) => (
+                    <Card key={index} className="bg-green-50 border-green-200">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <h4 className="font-semibold text-green-900">
+                              {result.filename}
+                            </h4>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {result.timestamp ? new Date(result.timestamp).toLocaleTimeString() : ''}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="bg-white rounded-lg p-3">
+                            <span className="text-gray-600 block mb-1">Original Size:</span>
+                            <span className="font-semibold text-gray-900">
+                              {result.original_shape?.join(' × ')} pixels
+                            </span>
+                          </div>
+                          <div className="bg-white rounded-lg p-3">
+                            <span className="text-gray-600 block mb-1">Processed Size:</span>
+                            <span className="font-semibold text-gray-900">
+                              {result.processed_shape?.join(' × ')} pixels
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-3">
+                          <span className="text-gray-600 text-sm font-medium block mb-2">Processing Steps Completed:</span>
+                          <ul className="space-y-1.5">
+                            {result.processing_steps?.map((step: string, i: number) => (
+                              <li key={i} className="text-sm text-gray-700 flex items-center gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        {result.processed_image_path && (
+                          <div className="bg-white rounded-lg p-3">
+                            <span className="text-gray-600 text-xs block mb-1">Processed Image Location:</span>
+                            <span className="text-xs text-gray-800 font-mono break-all">
+                              {result.processed_image_path}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Processed Image Display */}
+                        {result.processed_image_base64 && (
+                          <div className="bg-white rounded-lg p-4 space-y-3 border-2 border-green-200">
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <Eye className="w-4 h-4 text-blue-600" />
+                                Processed Image (256×256)
+                              </h5>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => {
+                                  // Download the processed image
+                                  const link = document.createElement('a');
+                                  link.href = result.processed_image_base64;
+                                  link.download = `${result.filename.replace(/\.[^/.]+$/, '')}_processed_256x256.png`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download Image
+                              </Button>
+                            </div>
+                            <div className="flex justify-center bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <img
+                                src={result.processed_image_base64}
+                                alt={`Processed ${result.filename}`}
+                                className="max-w-full h-auto rounded-lg shadow-lg"
+                                style={{ maxHeight: '400px', border: '2px solid #e5e7eb' }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 text-center">
+                              Preprocessed MRI image after all 6 processing steps (Resize, Grayscale, Denoising, Skull Stripping, Histogram Equalization, Normalization)
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
