@@ -23,7 +23,6 @@ const PatientSchema: Schema = new Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     firstName: {
       type: String,
@@ -84,8 +83,7 @@ const PatientSchema: Schema = new Schema(
   }
 );
 
-// Create index for better query performance
-PatientSchema.index({ patientId: 1 });
+// Create indexes for better query performance
 PatientSchema.index({ uploadedBy: 1 });
 PatientSchema.index({ status: 1 });
 

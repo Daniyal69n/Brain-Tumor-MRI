@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Upload, FileImage, X, CheckCircle, User, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/dashboard/PageHeader';
 
 type Step = 'patient-details' | 'upload-images';
 
-export default function UploadPage() {
+function UploadPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingPatientId = searchParams.get('patientId');
@@ -562,5 +562,23 @@ export default function UploadPage() {
         </ul>
       </Card>
     </div>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <PageHeader 
+          title="Upload MRI Images" 
+          description="Upload and process brain MRI images for volumetric analysis"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </div>
+    }>
+      <UploadPageContent />
+    </Suspense>
   );
 }

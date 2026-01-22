@@ -29,6 +29,7 @@ const UserSchema: Schema = new Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      index: true,
     },
     email: {
       type: String,
@@ -37,6 +38,7 @@ const UserSchema: Schema = new Schema(
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+      index: true,
     },
     contactNumber: {
       type: String,
@@ -53,10 +55,6 @@ const UserSchema: Schema = new Schema(
     timestamps: true,
   }
 );
-
-// Create indexes for better query performance
-UserSchema.index({ email: 1 });
-UserSchema.index({ username: 1 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
