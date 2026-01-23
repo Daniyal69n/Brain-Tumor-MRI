@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Save, User, Lock, Bell } from 'lucide-react';
+import { clearUserNotifications } from '@/lib/notifications';
 
 interface UserData {
   id: string;
@@ -14,6 +15,8 @@ interface UserData {
   username: string;
   email: string;
   contactNumber: string;
+  pmdcNumber?: string;
+  specialization?: string;
 }
 
 export default function SettingsPage() {
@@ -25,6 +28,8 @@ export default function SettingsPage() {
     email: '',
     contactNumber: '',
     organization: '',
+    pmdcNumber: '',
+    specialization: '',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +62,8 @@ export default function SettingsPage() {
           email: parsedUser.email || '',
           contactNumber: parsedUser.contactNumber || '',
           organization: '',
+          pmdcNumber: parsedUser.pmdcNumber || '',
+          specialization: parsedUser.specialization || '',
         });
         setIsLoading(false);
       } else {
@@ -84,6 +91,8 @@ export default function SettingsPage() {
           lastName: profileData.lastName,
           email: profileData.email,
           contactNumber: profileData.contactNumber,
+          pmdcNumber: profileData.pmdcNumber,
+          specialization: profileData.specialization,
         }),
       });
 
@@ -103,6 +112,8 @@ export default function SettingsPage() {
           lastName: profileData.lastName,
           email: profileData.email,
           contactNumber: profileData.contactNumber,
+          pmdcNumber: profileData.pmdcNumber,
+          specialization: profileData.specialization,
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
@@ -165,8 +176,21 @@ export default function SettingsPage() {
         return;
       }
 
+      // Get user ID before clearing
+      const userId = user?.id;
+
+      // Clear user-specific notifications
+      if (userId) {
+        clearUserNotifications(userId);
+      }
+
       // Success - clear localStorage and redirect to login
       localStorage.removeItem('user');
+      
+      // Dispatch event to notify other components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('userChanged'));
+      }
       
       // Show success message briefly before redirecting
       setPasswordErrors({ general: 'Password changed successfully! Redirecting to login...' });
@@ -241,7 +265,50 @@ export default function SettingsPage() {
                 onChange={(e) => setProfileData({ ...profileData, organization: e.target.value })}
                 placeholder="Organization (optional)"
               />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Specialization <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={profileData.specialization}
+                  onChange={(e) => setProfileData({ ...profileData, specialization: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Specialization</option>
+                  <option value="Medical Officer">Medical Officer</option>
+                  <option value="Doctor">Doctor</option>
+                  <option value="Surgeon">Surgeon</option>
+                  <option value="Radiologist">Radiologist</option>
+                  <option value="Neurologist">Neurologist</option>
+                  <option value="Researcher">Researcher</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <Input
+                label="PMDC Number"
+                value={profileData.pmdcNumber}
+                onChange={(e) => setProfileData({ ...profileData, pmdcNumber: e.target.value })}
+                placeholder="PMDC Registration Number (optional)"
+              />
             </div>
+            
+            {/* Display Specialization Info */}
+            {profileData.specialization && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-medium text-blue-900">Professional Information</p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm text-blue-700">
+                    <span className="font-semibold">Specialization:</span> {profileData.specialization}
+                  </p>
+                  {profileData.pmdcNumber && (
+                    <p className="text-sm text-blue-700">
+                      <span className="font-semibold">PMDC Number:</span> {profileData.pmdcNumber}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button type="submit" variant="primary" disabled={isSaving}>
                 <Save className="w-4 h-4 mr-2" />

@@ -16,6 +16,8 @@ export default function RegisterPage() {
     email: '',
     contactNumber: '',
     password: '',
+    pmdcNumber: '',
+    specialization: '',
   });
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -24,6 +26,8 @@ export default function RegisterPage() {
     email?: string;
     contactNumber?: string;
     password?: string;
+    pmdcNumber?: string;
+    specialization?: string;
     general?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +56,9 @@ export default function RegisterPage() {
     }
     if (!formData.contactNumber.trim()) {
       newErrors.contactNumber = 'Contact number is required';
+    }
+    if (!formData.specialization) {
+      newErrors.specialization = 'Specialization is required';
     }
     if (!formData.password) {
       newErrors.password = 'Password is required';
@@ -92,7 +99,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -169,6 +176,43 @@ export default function RegisterPage() {
               onChange={handleChange}
               error={errors.contactNumber}
               required
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Specialization <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="specialization"
+                value={formData.specialization}
+                onChange={handleChange}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.specialization ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              >
+                <option value="">Select Specialization</option>
+                <option value="Medical Officer">Medical Officer</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Surgeon">Surgeon</option>
+                <option value="Radiologist">Radiologist</option>
+                <option value="Neurologist">Neurologist</option>
+                <option value="Researcher">Researcher</option>
+                <option value="Other">Other</option>
+              </select>
+              {errors.specialization && (
+                <p className="mt-1 text-sm text-red-600">{errors.specialization}</p>
+              )}
+            </div>
+
+            <Input
+              type="text"
+              name="pmdcNumber"
+              label="PMDC Number (Optional)"
+              placeholder="PMDC Registration Number"
+              value={formData.pmdcNumber}
+              onChange={handleChange}
+              error={errors.pmdcNumber}
             />
 
             <Input

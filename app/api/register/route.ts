@@ -8,12 +8,12 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { firstName, lastName, username, email, contactNumber, password } = body;
+    const { firstName, lastName, username, email, contactNumber, password, pmdcNumber, specialization } = body;
 
     // Validation
-    if (!firstName || !lastName || !username || !email || !contactNumber || !password) {
+    if (!firstName || !lastName || !username || !email || !contactNumber || !password || !specialization) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'All required fields must be provided' },
         { status: 400 }
       );
     }
@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       contactNumber,
       password: hashedPassword,
+      pmdcNumber: pmdcNumber || undefined,
+      specialization,
     });
 
     // Return user data (without password)
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
       username: user.username,
       email: user.email,
       contactNumber: user.contactNumber,
+      pmdcNumber: user.pmdcNumber,
+      specialization: user.specialization,
     };
 
     return NextResponse.json(

@@ -7,6 +7,8 @@ export interface IUser extends Document {
   email: string;
   contactNumber: string;
   password: string;
+  pmdcNumber?: string;
+  specialization?: string; // Medical Officer, Doctor, Surgeon, etc.
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +51,15 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
+    },
+    pmdcNumber: {
+      type: String,
+      trim: true,
+    },
+    specialization: {
+      type: String,
+      trim: true,
+      enum: ['Medical Officer', 'Doctor', 'Surgeon', 'Radiologist', 'Neurologist', 'Researcher', 'Other'],
     },
   },
   {

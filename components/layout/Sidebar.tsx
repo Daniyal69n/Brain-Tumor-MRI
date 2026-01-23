@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Upload, 
@@ -12,6 +12,7 @@ import {
   Brain,
   Users
 } from 'lucide-react';
+import { clearUserNotifications } from '@/lib/notifications';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,6 +25,38 @@ const menuItems = [
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      // Get user data before clearing
+      const userData = localStorage.getItem('user');
+      let userId: string | null = null;
+      
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          userId = user.id;
+          
+          // Clear user-specific notifications
+          if (userId) {
+            clearUserNotifications(userId);
+          }
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+      
+      // Clear user data
+      localStorage.removeItem('user');
+      
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('userChanged'));
+      
+      // Redirect to home
+      router.push('/');
+    }
+  };
 
   return (
     <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white min-h-screen flex flex-col shadow-2xl">
@@ -65,11 +98,17 @@ export const Sidebar = () => {
       </nav>
       
       <div className="p-4 border-t border-gray-700">
-        <Link 
-          href="/"
+        <button
+          onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-gray-800/50 hover:text-white w-full transition-all duration-200"
         >
           <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
+        <Link 
+          href="/"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-gray-800/50 hover:text-white w-full transition-all duration-200 mt-2"
+        >
           <span className="font-medium">Back to Home</span>
         </Link>
       </div>

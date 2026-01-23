@@ -1,97 +1,230 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Download, FileText, Calendar, User } from 'lucide-react';
+import { Download, FileText, Calendar, User, Plus } from 'lucide-react';
+import { generateReport } from '@/lib/reportGenerator';
+import { PageHeader } from '@/components/dashboard/PageHeader';
+
+interface Patient {
+  _id: string;
+  patientId: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  gender: string;
+  contactNumber: string;
+  email?: string;
+  address?: string;
+  medicalHistory?: string;
+  notes?: string;
+  status: string;
+  createdAt: string;
+}
+
+interface UserData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  specialization?: string;
+  pmdcNumber?: string;
+}
 
 export default function ReportsPage() {
-  const reports = [
-    {
-      id: 1,
-      patientId: 'Patient #001',
-      generatedDate: '2025-11-20',
-      reportType: 'Full Volumetric Analysis',
-      fileSize: '2.4 MB',
-      status: 'Available',
-    },
-    {
-      id: 2,
-      patientId: 'Patient #002',
-      generatedDate: '2025-11-19',
-      reportType: 'Full Volumetric Analysis',
-      fileSize: '2.1 MB',
-      status: 'Available',
-    },
-    {
-      id: 3,
-      patientId: 'Patient #003',
-      generatedDate: '2025-11-18',
-      reportType: 'Summary Report',
-      fileSize: '1.8 MB',
-      status: 'Available',
-    },
-  ];
+  const router = useRouter();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      // Load user data
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        } else {
+          router.push('/login');
+          return;
+        }
+      }
+
+      // Load patients
+      const userData = localStorage.getItem('user');
+      if (!userData) return;
+      
+      const user = JSON.parse(userData);
+      const response = await fetch(`/api/patients?uploadedBy=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setPatients(data.patients);
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateReport = (patient: Patient) => {
+    if (!user) {
+      alert('User information not available. Please login again.');
+      return;
+    }
+
+    const scanDate = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const reportData = {
+      patient: {
+        patientId: patient.patientId,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        age: patient.age,
+        gender: patient.gender,
+        contactNumber: patient.contactNumber,
+        email: patient.email,
+        address: patient.address,
+        medicalHistory: patient.medicalHistory,
+        notes: patient.notes,
+      },
+      doctor: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        specialization: user.specialization || 'Medical Officer',
+        pmdcNumber: user.pmdcNumber,
+      },
+      scanDate: scanDate,
+      purpose: 'MRI brain scan for tumor / lesion analysis.',
+      findings: [
+        {
+          finding: 'Brain Structure',
+          details: 'Normal brain anatomy observed. No significant structural abnormalities detected.',
+        },
+        {
+          finding: 'Tissue Volumetry',
+          details: 'Volumetric analysis completed. Gray matter, white matter, and CSF volumes within normal ranges.',
+        },
+      ],
+      impression: 'No significant abnormalities detected in this MRI brain scan. The patient\'s brain MRI scan is clear, showing normal brain structures.',
+      recommendation: 'Regular follow-up as needed. Immediate consultation is advised if any new symptoms develop.',
+    };
+
+    try {
+      generateReport(reportData);
+      setShowGenerateModal(false);
+      setSelectedPatient(null);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Reports"
+          description="View and download volumetric analysis reports"
+        />
+        <Card>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-500 mt-4">Loading patients...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Reports"
+        description="Generate and download MRI brain analysis reports"
+      />
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600 mt-1">View and download volumetric analysis reports</p>
+          <h2 className="text-xl font-semibold text-gray-900">Select Patient to Generate Report</h2>
+          <p className="text-sm text-gray-600 mt-1">Choose a patient to create a hospital-style MRI report</p>
         </div>
-        <Button variant="primary">
-          <FileText className="w-5 h-5 mr-2" />
-          Generate New Report
-        </Button>
       </div>
 
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Patient ID</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Report Type</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Generated Date</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">File Size</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.map((report) => (
-                <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">{report.patientId}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{report.reportType}</td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      {report.generatedDate}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{report.fileSize}</td>
-                  <td className="py-4 px-4">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                      {report.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
-                  </td>
+      {patients.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Patients Found</h3>
+            <p className="text-gray-600 mb-6">
+              Register a patient first to generate reports
+            </p>
+            <Button
+              variant="primary"
+              onClick={() => router.push('/dashboard/upload')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Register New Patient
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Patient ID</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Age</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Gender</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {patients.map((patient) => (
+                  <tr key={patient._id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">{patient.patientId}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900">
+                      {patient.firstName} {patient.lastName}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-600">{patient.age} years</td>
+                    <td className="py-4 px-4 text-sm text-gray-600">{patient.gender}</td>
+                    <td className="py-4 px-4">
+                      <Button 
+                        variant="primary" 
+                        size="sm"
+                        onClick={() => handleGenerateReport(patient)}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Report
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Report Generation Info */}
       <Card title="Report Information">

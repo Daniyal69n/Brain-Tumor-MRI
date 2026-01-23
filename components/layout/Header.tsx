@@ -18,21 +18,48 @@ export const Header = () => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      }
+      const loadUserAndNotifications = () => {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          try {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        // Load notifications for current user
+        loadNotifications();
+      };
       
-      // Load notifications
-      loadNotifications();
+      // Initial load
+      loadUserAndNotifications();
       
       // Listen for notification updates
       const handleUpdate = () => loadNotifications();
       window.addEventListener('notificationsUpdated', handleUpdate);
       
+      // Listen for storage changes (when user logs in/out in another tab)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'user') {
+          loadUserAndNotifications();
+        }
+      };
+      window.addEventListener('storage', handleStorageChange);
+      
+      // Listen for user changes (custom event)
+      const handleUserChange = () => {
+        loadUserAndNotifications();
+      };
+      window.addEventListener('userChanged', handleUserChange);
+      
       return () => {
         window.removeEventListener('notificationsUpdated', handleUpdate);
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('userChanged', handleUserChange);
       };
     }
   }, []);
@@ -73,17 +100,18 @@ export const Header = () => {
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    
+    // Format: "Jan 23, 2026, 9:52 AM"
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    };
+    
+    return date.toLocaleString('en-US', options);
   };
 
   const handleNotificationClick = (notification: Notification) => {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Brain } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { addNotification } from '@/lib/notifications';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -62,6 +63,13 @@ export default function LoginPage() {
       // Success - store user data and redirect to dashboard
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Add login notification
+        addNotification({
+          type: 'info',
+          title: 'Login Successful',
+          message: `Welcome back, ${data.user.firstName} ${data.user.lastName}! You have successfully logged in.`,
+        });
       }
       router.push('/dashboard');
     } catch (error) {

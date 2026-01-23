@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.468.0",
-    "mongoose": "^8.0.3",
     "mongodb": "^7.0.0",
+    "mongoose": "^8.0.3",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"

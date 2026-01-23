@@ -7,7 +7,7 @@ export async function PUT(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { userId, firstName, lastName, email, contactNumber } = body;
+    const { userId, firstName, lastName, email, contactNumber, pmdcNumber, specialization } = body;
 
     // Validation
     if (!userId) {
@@ -19,7 +19,7 @@ export async function PUT(request: NextRequest) {
 
     if (!firstName || !lastName || !email || !contactNumber) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'All required fields must be provided' },
         { status: 400 }
       );
     }
@@ -38,14 +38,24 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user
+    const updateData: any = {
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      contactNumber,
+    };
+    
+    if (pmdcNumber !== undefined) {
+      updateData.pmdcNumber = pmdcNumber || undefined;
+    }
+    
+    if (specialization !== undefined) {
+      updateData.specialization = specialization;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      {
-        firstName,
-        lastName,
-        email: email.toLowerCase(),
-        contactNumber,
-      },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -64,6 +74,8 @@ export async function PUT(request: NextRequest) {
       username: updatedUser.username,
       email: updatedUser.email,
       contactNumber: updatedUser.contactNumber,
+      pmdcNumber: updatedUser.pmdcNumber,
+      specialization: updatedUser.specialization,
     };
 
     return NextResponse.json(

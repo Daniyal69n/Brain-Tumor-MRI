@@ -1,6 +1,7 @@
 /**
  * Notification System
  * Manages notifications for preprocessing completion and other events
+ * Notifications are stored per user to ensure separation
  */
 
 export interface Notification {
@@ -14,16 +15,47 @@ export interface Notification {
   patientId?: string;
 }
 
-const NOTIFICATIONS_KEY = 'brain_analysis_notifications';
+/**
+ * Get the notifications key for a specific user
+ */
+function getNotificationsKey(userId?: string): string {
+  if (!userId) {
+    // Fallback to a default key if no user ID (shouldn't happen in normal flow)
+    return 'brain_analysis_notifications_default';
+  }
+  return `brain_analysis_notifications_${userId}`;
+}
 
 /**
- * Get all notifications from localStorage
+ * Get current user ID from localStorage
+ */
+function getCurrentUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id || null;
+    }
+  } catch (error) {
+    console.error('Error reading user data:', error);
+  }
+  return null;
+}
+
+/**
+ * Get all notifications from localStorage for the current user
  */
 export function getNotifications(): Notification[] {
   if (typeof window === 'undefined') return [];
   
+  const userId = getCurrentUserId();
+  if (!userId) return [];
+  
   try {
-    const stored = localStorage.getItem(NOTIFICATIONS_KEY);
+    const key = getNotificationsKey(userId);
+    const stored = localStorage.getItem(key);
     if (!stored) return [];
     return JSON.parse(stored);
   } catch (error) {
@@ -33,13 +65,17 @@ export function getNotifications(): Notification[] {
 }
 
 /**
- * Save notifications to localStorage
+ * Save notifications to localStorage for the current user
  */
 export function saveNotifications(notifications: Notification[]): void {
   if (typeof window === 'undefined') return;
   
+  const userId = getCurrentUserId();
+  if (!userId) return;
+  
   try {
-    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications));
+    const key = getNotificationsKey(userId);
+    localStorage.setItem(key, JSON.stringify(notifications));
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('notificationsUpdated'));
   } catch (error) {
@@ -48,9 +84,15 @@ export function saveNotifications(notifications: Notification[]): void {
 }
 
 /**
- * Add a new notification
+ * Add a new notification for the current user
  */
 export function addNotification(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): void {
+  const userId = getCurrentUserId();
+  if (!userId) {
+    console.warn('Cannot add notification: No user logged in');
+    return;
+  }
+  
   const notifications = getNotifications();
   const newNotification: Notification = {
     ...notification,
@@ -98,7 +140,7 @@ export function deleteNotification(notificationId: string): void {
 }
 
 /**
- * Clear all notifications
+ * Clear all notifications for the current user
  */
 export function clearAllNotifications(): void {
   saveNotifications([]);
@@ -110,4 +152,18 @@ export function clearAllNotifications(): void {
 export function getUnreadCount(): number {
   const notifications = getNotifications();
   return notifications.filter(notif => !notif.read).length;
+}
+
+/**
+ * Clear all notifications for a specific user (useful when logging out)
+ */
+export function clearUserNotifications(userId: string): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const key = getNotificationsKey(userId);
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error('Error clearing user notifications:', error);
+  }
 }

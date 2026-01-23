@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
       username: user.username,
       email: user.email,
       contactNumber: user.contactNumber,
+      pmdcNumber: user.pmdcNumber,
+      specialization: user.specialization,
     };
 
     return NextResponse.json(
