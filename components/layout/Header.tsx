@@ -168,28 +168,28 @@ export const Header = () => {
                 )}
               </button>
 
-              {/* Notifications Dropdown */}
+              {/* Notifications Dropdown - fixed on mobile to fit viewport, absolute on desktop */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:max-w-none sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-96 overflow-hidden flex flex-col">
-                  <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
+                <div className="fixed inset-x-3 top-16 sm:inset-auto sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden flex flex-col z-50">
+                  <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
                     {unreadCount > 0 && (
                       <button
                         onClick={() => {
                           markAllAsRead();
                           loadNotifications();
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 touch-manipulation"
                       >
                         Mark all as read
                       </button>
                     )}
                   </div>
-                  
-                  <div className="overflow-y-auto max-h-80">
+
+                  <div className="overflow-y-auto overflow-x-hidden max-h-[calc(70vh-4.5rem)] sm:max-h-80">
                     {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <div className="p-6 sm:p-8 text-center text-gray-500">
+                        <Bell className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
                         <p className="text-sm">No notifications</p>
                       </div>
                     ) : (
@@ -197,25 +197,25 @@ export const Header = () => {
                         <div
                           key={notification.id}
                           onClick={() => handleNotificationClick(notification)}
-                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          className={`p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                             !notification.read ? 'bg-blue-50/50' : ''
                           }`}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <div className="mt-0.5 flex-shrink-0">
                               {getNotificationIcon(notification.type)}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-900 text-sm">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 text-sm break-words">
                                     {notification.title}
                                   </h4>
-                                  <p className="text-sm text-gray-600 mt-1">
+                                  <p className="text-sm text-gray-600 mt-1 break-words">
                                     {notification.message}
                                   </p>
                                   {notification.patientName && (
-                                    <p className="text-xs text-blue-600 mt-1 font-medium">
+                                    <p className="text-xs text-blue-600 mt-1 font-medium break-words">
                                       Patient: {notification.patientName}
                                     </p>
                                   )}
@@ -225,14 +225,15 @@ export const Header = () => {
                                 </div>
                                 <button
                                   onClick={(e) => handleDeleteNotification(e, notification.id)}
-                                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                  className="p-2 -mr-1 text-gray-400 hover:text-red-600 transition-colors flex-shrink-0 touch-manipulation"
+                                  aria-label="Dismiss notification"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
                             {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" aria-hidden />
                             )}
                           </div>
                         </div>
