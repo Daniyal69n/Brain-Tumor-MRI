@@ -151,16 +151,16 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Reports"
         description="Generate and download MRI brain analysis reports"
       />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Select Patient to Generate Report</h2>
-          <p className="text-sm text-gray-600 mt-1">Choose a patient to create a hospital-style MRI report</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Select Patient to Generate Report</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Choose a patient to create a hospital-style MRI report</p>
         </div>
       </div>
 
@@ -183,39 +183,41 @@ export default function ReportsPage() {
         </Card>
       ) : (
         <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 sm:-mx-6">
+            <table className="w-full min-w-[520px]">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Patient ID</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Age</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Gender</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Patient ID</th>
+                  <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Name</th>
+                  <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Age</th>
+                  <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Gender</th>
+                  <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {patients.map((patient) => (
                   <tr key={patient._id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4">
+                    <td className="py-3 sm:py-4 px-3 sm:px-4">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">{patient.patientId}</span>
+                        <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium text-gray-900">{patient.patientId}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-900">
+                    <td className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm text-gray-900">
                       {patient.firstName} {patient.lastName}
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-600">{patient.age} years</td>
-                    <td className="py-4 px-4 text-sm text-gray-600">{patient.gender}</td>
-                    <td className="py-4 px-4">
-                      <Button 
-                        variant="primary" 
+                    <td className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm text-gray-600">{patient.age} years</td>
+                    <td className="py-3 sm:py-4 px-3 sm:px-4 text-xs sm:text-sm text-gray-600">{patient.gender}</td>
+                    <td className="py-3 sm:py-4 px-3 sm:px-4">
+                      <Button
+                        variant="primary"
                         size="sm"
                         onClick={() => handleGenerateReport(patient)}
+                        className="touch-manipulation"
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        Generate Report
+                        <span className="hidden sm:inline">Generate Report</span>
+                        <span className="sm:hidden">Report</span>
                       </Button>
                     </td>
                   </tr>

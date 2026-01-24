@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Bell, User, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, User, X, Menu, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification, getUnreadCount, type Notification } from '@/lib/notifications';
 
 interface UserData {
@@ -127,23 +127,35 @@ export const Header = () => {
     loadNotifications();
   };
 
+  const toggleSidebar = () => window.dispatchEvent(new CustomEvent('toggleSidebar'));
+
   return (
-    <header className="bg-white border-b border-gray-200/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="px-8 py-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Dashboard
-            </h2>
-            <p className="text-sm text-gray-500 mt-0.5">Welcome back, {userName}</p>
+    <header className="bg-white border-b border-gray-200/80 backdrop-blur-sm sticky top-0 z-30">
+      <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label="Open menu"
+              className="md:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent truncate">
+                Dashboard
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">Welcome back, {userName}</p>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:text-gray-900 hover:scale-105"
+                className="relative p-2 sm:p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:text-gray-900 hover:scale-105 touch-manipulation"
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
@@ -158,7 +170,7 @@ export const Header = () => {
 
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-96 overflow-hidden flex flex-col">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:max-w-none sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-96 overflow-hidden flex flex-col">
                   <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
                     <h3 className="font-semibold text-gray-900">Notifications</h3>
                     {unreadCount > 0 && (
@@ -232,14 +244,14 @@ export const Header = () => {
             </div>
 
             {/* Profile Button */}
-            <Link 
+            <Link
               href="/dashboard/settings"
-              className="flex items-center gap-2.5 px-4 py-2.5 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 border border-gray-200 shadow-sm hover:shadow-md"
+              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-4 py-2 sm:py-2.5 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 border border-gray-200 shadow-sm hover:shadow-md touch-manipulation"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
+                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">Profile</span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-700 hidden sm:inline">Profile</span>
             </Link>
           </div>
         </div>

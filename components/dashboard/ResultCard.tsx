@@ -34,10 +34,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{patientId}</h3>
-            <p className="text-sm text-gray-500">{date}</p>
+        <div className="flex items-start sm:items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{patientId}</h3>
+            <p className="text-xs sm:text-sm text-gray-500">{date}</p>
           </div>
           <StatusBadge status={status} />
         </div>
@@ -62,14 +62,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               </div>
             )}
 
-            <div className="flex gap-2 pt-4">
-              <Link href={`/dashboard/results/${id}`} className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+              <Link href={`/dashboard/results/${id}`} className="flex-1 min-w-0">
                 <Button variant="primary" size="sm" className="w-full">
                   <Eye className="w-4 h-4 mr-2" />
                   View Details
                 </Button>
               </Link>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <Download className="w-4 h-4" />
               </Button>
             </div>

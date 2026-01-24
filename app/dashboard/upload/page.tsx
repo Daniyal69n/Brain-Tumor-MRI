@@ -53,6 +53,8 @@ function UploadPageContent() {
     total: 0,
     currentFile: ''
   });
+  const [visitDate, setVisitDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [visitNotes, setVisitNotes] = useState<string>('');
 
   useEffect(() => {
     // If patientId is in URL, load patient data and skip to upload step
@@ -255,24 +257,60 @@ function UploadPageContent() {
       setPreprocessingResults(results);
       setUploading(false);
       setUploaded(true);
-      
+
+      // Save patient history (visit date, upload metadata, preprocessing results)
+      const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      const user = userJson ? JSON.parse(userJson) : null;
+      if (user?.id && patientId) {
+        const entries = results.map((r: { filename: string; processed_image_path?: string; processing_steps?: string[]; original_shape?: number[]; processed_shape?: number[] }) => ({
+          originalFilename: r.filename,
+          processedPath: r.processed_image_path ?? '',
+          processingSteps: Array.isArray(r.processing_steps) ? r.processing_steps : [],
+          originalShape: Array.isArray(r.original_shape) ? r.original_shape : [],
+          processedShape: Array.isArray(r.processed_shape) ? r.processed_shape : [],
+          denoiseMethod: 'gaussian',
+        }));
+        try {
+          const histRes = await fetch(`/api/patients/${patientId}/history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uploadedBy: user.id,
+              visitDate: visitDate || new Date().toISOString().slice(0, 10),
+              imageCount: results.length,
+              status: 'completed',
+              entries,
+              notes: visitNotes.trim() || undefined,
+            }),
+          });
+          if (!histRes.ok) {
+            const err = await histRes.json().catch(() => ({}));
+            console.error('Patient history save failed:', err);
+            addNotification({ type: 'warning', title: 'History not saved', message: 'Visit was recorded but history could not be saved. You can still view preprocessing results.' });
+          }
+        } catch (e) {
+          console.error('Patient history save error:', e);
+          addNotification({ type: 'warning', title: 'History not saved', message: 'Visit was recorded but history could not be saved. You can still view preprocessing results.' });
+        }
+      }
+
       // Create notification for each processed image
-      results.forEach((result) => {
-        const patientName = existingPatient 
+      results.forEach((result: { filename: string }) => {
+        const patientName = existingPatient
           ? `${existingPatient.firstName} ${existingPatient.lastName}`
-          : createdPatientId 
+          : createdPatientId
             ? `Patient ${createdPatientId}`
             : 'Patient';
-        
+
         addNotification({
           type: 'success',
           title: 'Preprocessing Completed',
           message: `MRI image "${result.filename}" has been successfully preprocessed through all 6 steps.`,
-          patientName: patientName,
-          patientId: patientId,
+          patientName,
+          patientId,
         });
       });
-      
+
       // Keep results visible - no automatic redirect
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -282,30 +320,30 @@ function UploadPageContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Upload MRI Images"
         description="Register a new patient and upload their MRI images for analysis"
       />
 
       {/* Step Indicator */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
         <div className={`flex items-center gap-2 ${currentStep === 'patient-details' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
             currentStep === 'patient-details' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
           }`}>
             1
           </div>
-          <span className="font-medium">Patient Details</span>
+          <span className="font-medium text-sm sm:text-base">Patient Details</span>
         </div>
-        <ChevronRight className="w-5 h-5 text-gray-400" />
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
         <div className={`flex items-center gap-2 ${currentStep === 'upload-images' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
             currentStep === 'upload-images' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
           }`}>
             2
           </div>
-          <span className="font-medium">Upload Images</span>
+          <span className="font-medium text-sm sm:text-base">Upload Images</span>
         </div>
       </div>
 
@@ -318,7 +356,7 @@ function UploadPageContent() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 type="text"
                 name="firstName"
@@ -357,7 +395,7 @@ function UploadPageContent() {
                   name="gender"
                   value={patientData.gender}
                   onChange={handlePatientChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     patientErrors.gender ? 'border-red-500' : 'border-gray-300'
                   }`}
                   required
@@ -481,18 +519,40 @@ function UploadPageContent() {
 
           <Card>
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Upload MRI Images</h3>
-                  <p className="text-sm text-gray-600">Upload images for Patient ID: {createdPatientId}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Upload MRI Images</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Upload images for Patient ID: {createdPatientId}</p>
                 </div>
                 <Button
                   variant="ghost"
                   onClick={() => setCurrentStep('patient-details')}
+                  className="self-start sm:self-center"
                 >
                   <ChevronLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  label="Visit / check-up date"
+                  type="date"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes for this visit (optional)
+                  </label>
+                  <textarea
+                    value={visitNotes}
+                    onChange={(e) => setVisitNotes(e.target.value)}
+                    placeholder="e.g. follow-up, symptoms, referral..."
+                    rows={2}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                </div>
               </div>
 
               {/* Upload Area */}
@@ -500,20 +560,20 @@ function UploadPageContent() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-6 sm:p-10 lg:p-12 text-center transition-colors ${
                   isDragging
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                   Drag and drop files here
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
                   or click to browse files
                 </p>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4 px-2">
                   Supported formats: DICOM (.dcm), NIfTI (.nii, .nii.gz), PNG, JPEG
                 </p>
                 <input
@@ -566,11 +626,12 @@ function UploadPageContent() {
 
               {/* Upload Button */}
               {files.length > 0 && !uploaded && (
-                <div className="flex justify-end gap-4">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
                   <Button
                     variant="ghost"
                     onClick={() => setFiles([])}
                     disabled={uploading}
+                    className="w-full sm:w-auto"
                   >
                     Clear All
                   </Button>
@@ -578,6 +639,7 @@ function UploadPageContent() {
                     variant="primary"
                     onClick={handleUpload}
                     disabled={uploading}
+                    className="w-full sm:w-auto"
                   >
                     {uploading ? (
                       <>
@@ -596,9 +658,10 @@ function UploadPageContent() {
 
               {/* Action Buttons After Upload */}
               {uploaded && preprocessingResults.length > 0 && (
-                <div className="flex justify-end gap-4 mt-4">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 mt-4">
                   <Button
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setFiles([]);
                       setPreprocessingResults([]);
@@ -611,13 +674,16 @@ function UploadPageContent() {
                   </Button>
                   <Button
                     variant="primary"
+                    className="w-full sm:w-auto"
                     onClick={() => {
-                      // Reset everything and go back to patient details
                       setFiles([]);
                       setPreprocessingResults([]);
                       setUploaded(false);
                       setUploadError('');
                       setProcessingProgress({ current: 0, total: 0, currentFile: '' });
+                      setVisitDate(new Date().toISOString().slice(0, 10));
+                      setVisitNotes('');
+                      setExistingPatient(null);
                       setCurrentStep('patient-details');
                       setPatientData({
                         firstName: '',
@@ -690,25 +756,25 @@ function UploadPageContent() {
 
               {/* Preprocessing Results */}
               {preprocessingResults.length > 0 && (
-                <div className="space-y-4 mt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                <div className="space-y-4 mt-4 sm:mt-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                       Preprocessing Results ({preprocessingResults.length} {preprocessingResults.length === 1 ? 'image' : 'images'})
                     </h3>
                     {uploaded && (
                       <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle className="w-5 h-5" />
-                        <span className="font-medium">All images processed successfully!</span>
+                        <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                        <span className="text-sm sm:text-base font-medium">All images processed successfully!</span>
                       </div>
                     )}
                   </div>
                   {preprocessingResults.map((result, index) => (
                     <Card key={index} className="bg-green-50 border-green-200">
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                            <h4 className="font-semibold text-green-900">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <h4 className="font-semibold text-green-900 truncate">
                               {result.filename}
                             </h4>
                           </div>
@@ -716,8 +782,8 @@ function UploadPageContent() {
                             {result.timestamp ? new Date(result.timestamp).toLocaleTimeString() : ''}
                           </span>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                           <div className="bg-white rounded-lg p-3">
                             <span className="text-gray-600 block mb-1">Original Size:</span>
                             <span className="font-semibold text-gray-900">

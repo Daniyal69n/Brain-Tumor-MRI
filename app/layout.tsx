@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   description: "Investigating Volumetric Analysis of Constituents Of Brain Soft Tissue",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

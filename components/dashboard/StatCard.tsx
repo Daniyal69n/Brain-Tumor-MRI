@@ -29,16 +29,16 @@ export const StatCard: React.FC<StatCardProps> = ({
   const gradientClass = colorClasses[color as keyof typeof colorClasses] || 'from-gray-500 to-gray-600';
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 opacity-50"></div>
-      <div className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
+    <div className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 opacity-50" />
+      <div className="relative p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               {label}
             </p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{value}</p>
               {trend && (
                 <div className={`flex items-center gap-1 text-xs font-semibold ${
                   trend.isPositive ? 'text-emerald-600' : 'text-red-600'
@@ -53,12 +53,12 @@ export const StatCard: React.FC<StatCardProps> = ({
               )}
             </div>
           </div>
-          <div className={`bg-gradient-to-br ${gradientClass} p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-            <Icon className="w-6 h-6 text-white" />
+          <div className={`bg-gradient-to-br ${gradientClass} p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
         </div>
         <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-          <div className={`h-full bg-gradient-to-r ${gradientClass} rounded-full`} style={{ width: '75%' }}></div>
+          <div className={`h-full bg-gradient-to-r ${gradientClass} rounded-full`} style={{ width: '75%' }} />
         </div>
       </div>
     </div>

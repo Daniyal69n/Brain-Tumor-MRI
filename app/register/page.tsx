@@ -106,23 +106,23 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 sm:p-6 overflow-x-hidden">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-5 sm:p-8">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="flex justify-center mb-3 sm:mb-4">
               <div className="bg-blue-100 p-3 rounded-full">
-                <Brain className="w-8 h-8 text-blue-600" />
+                <Brain className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Create Account
             </h1>
-            <p className="text-gray-600">Register as a researcher</p>
+            <p className="text-sm sm:text-base text-gray-600">Register as a researcher</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 type="text"
                 name="firstName"
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 name="specialization"
                 value={formData.specialization}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.specialization ? 'border-red-500' : 'border-gray-300'
                 }`}
                 required

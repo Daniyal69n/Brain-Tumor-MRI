@@ -52,13 +52,13 @@ export default function ResultsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Analysis Results"
         description="View volumetric analysis results and performance metrics"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {results.map((result) => (
           <ResultCard
             key={result.id}
@@ -74,21 +74,21 @@ export default function ResultsPage() {
 
       {/* Summary Statistics */}
       <Card title="Summary Statistics">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">94.2%</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">94.2%</p>
             <p className="text-sm text-gray-600 mt-1">Average Dice Score</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-green-600">89.5%</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">89.5%</p>
             <p className="text-sm text-gray-600 mt-1">Average IoU</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-purple-600">95.8%</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">95.8%</p>
             <p className="text-sm text-gray-600 mt-1">Average Accuracy</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-orange-600">92.1%</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600">92.1%</p>
             <p className="text-sm text-gray-600 mt-1">Average F1-Score</p>
           </div>
         </div>

@@ -25,20 +25,20 @@ export const DataTable: React.FC<DataTableProps> = ({
   actionButton,
 }) => {
   return (
-    <div className="overflow-x-auto -mx-6 -my-6">
-      <table className="w-full">
+    <div className="overflow-x-auto -mx-4 -my-4 sm:-mx-6 sm:-my-6">
+      <table className="w-full min-w-[640px]">
         <thead>
           <tr className="border-b border-gray-200 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm">
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="text-left py-4 px-6 text-xs font-bold text-gray-700 uppercase tracking-wider"
+                className="text-left py-3 px-3 sm:py-4 sm:px-6 text-xs font-bold text-gray-700 uppercase tracking-wider"
               >
                 {column.label}
               </th>
             ))}
             {actionButton && (
-              <th className="text-left py-4 px-6 text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="text-left py-3 px-3 sm:py-4 sm:px-6 text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Actions
               </th>
             )}
@@ -51,7 +51,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               className="border-b border-gray-100/50 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 group"
             >
               {columns.map((column) => (
-                <td key={column.key} className="py-4 px-6 text-sm whitespace-nowrap">
+                <td key={column.key} className="py-3 px-3 sm:py-4 sm:px-6 text-sm whitespace-nowrap">
                   {column.render
                     ? column.render(row[column.key], row)
                     : (
@@ -62,19 +62,19 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </td>
               ))}
               {actionButton && (
-                <td className="py-4 px-6">
+                <td className="py-3 px-3 sm:py-4 sm:px-6">
                   {actionButton.onClick ? (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="hover:bg-blue-100 hover:text-blue-700 font-medium"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-blue-100 hover:text-blue-700 font-medium touch-manipulation"
                       onClick={() => actionButton.onClick!(row)}
                     >
                       {actionButton.label}
                     </Button>
                   ) : actionButton.href ? (
                     <Link href={actionButton.href(row)}>
-                      <Button variant="ghost" size="sm" className="hover:bg-blue-100 hover:text-blue-700 font-medium">
+                      <Button variant="ghost" size="sm" className="hover:bg-blue-100 hover:text-blue-700 font-medium touch-manipulation">
                         {actionButton.label}
                       </Button>
                     </Link>
